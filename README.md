@@ -1,64 +1,64 @@
-# ZINC Data Downloader & Processor
+# ZINC Data Downloader and Processor
 
-Modul ini memungkinkan pengguna untuk mengunduh dan memproses file dari ZINC database dalam berbagai format seperti SDF, MOL2, PDBQT, dan SMI.
+## Deskripsi
+Modul ini digunakan untuk mengunduh, mengekstrak, dan memproses file data dari ZINC database, termasuk format **SMILES** dan **3D molecular structures** seperti **SDF, MOL2, dan PDBQT**. Modul ini mendukung pemrosesan paralel menggunakan `ProcessPoolExecutor` untuk meningkatkan efisiensi.
 
-## Fitur Utama
-- Mengunduh file dari ZINC database secara otomatis
-- Mengekstrak file terkompresi `.gz`
-- Mengonversi file `.smi` menjadi `.csv`
-- Menggunakan `ProcessPoolExecutor` untuk pemrosesan paralel
-- Mengelompokkan file berdasarkan formatnya
+## Fitur
+- **Mengunduh file SMILES dan mengonversinya ke CSV**
+- **Mengunduh dan mengekstrak file 3D molecular structures dalam format SDF, MOL2, dan PDBQT**
+- **Pemrosesan data dalam mode paralel** untuk meningkatkan kecepatan
+- **Pengelolaan file secara otomatis** termasuk penghapusan file yang tidak diperlukan setelah pemrosesan
 
 ## Instalasi
-Pastikan Anda memiliki Python 3.x dan pustaka yang diperlukan telah terinstal. Anda dapat menginstalnya dengan perintah berikut:
+Modul ini memerlukan Python 3 dan beberapa dependensi. Pastikan Anda menginstalnya terlebih dahulu dengan perintah berikut:
 
-```sh
+```bash
 pip install requests pandas
 ```
 
-## Cara Penggunaan
+## Penggunaan
 
-### 1. Mengunduh dan Mengekstrak File 3D dari ZINC
-
-Simpan daftar URL file ZINC 3D dalam sebuah file teks (misalnya, `zinc_3d_urls.txt`).
-Kemudian jalankan skrip berikut:
+### 1. Mengunduh dan Memproses File SMILES
+Sediakan file teks (`.uri`) yang berisi daftar URL SMILES dari ZINC database. Lalu, jalankan:
 
 ```python
-from your_module import zinc_process_3d_files
+from module_name import zinc_process_smi_files
 
-zinc_process_3d_files("zinc_3d_urls.txt")
+zinc_uri_smiles = 'zinc_smiles.uri'  # Ganti dengan path file URI yang sesuai
+zinc_process_smi_files(zinc_uri_smiles)
 ```
 
-**Output:**
-- Folder `data_zinc_sdf/` berisi file `.sdf`
-- Folder `data_zinc_mol2/` berisi file `.mol2`
-- Folder `data_zinc_pdbqt/` berisi file `.pdbqt`
+Hasilnya akan disimpan dalam file `data_zinc_smiles.csv`.
 
-### 2. Mengunduh dan Mengonversi File SMILES dari ZINC
-
-Simpan daftar URL file `.smi` dalam sebuah file teks (misalnya, `zinc_smi_urls.txt`).
-Kemudian jalankan:
+### 2. Mengunduh dan Memproses File 3D Molecular Structures
+Siapkan file `.uri` berisi daftar URL file ZINC 3D (SDF, MOL2, PDBQT). Kemudian jalankan:
 
 ```python
-from your_module import zinc_process_smi_files
+from module_name import zinc_process_3d_files
 
-zinc_process_smi_files("zinc_smi_urls.txt")
+zinc_uri_3d = 'zinc_3d.uri'  # Ganti dengan path file URI yang sesuai
+zinc_process_3d_files(zinc_uri_3d)
 ```
 
-**Output:**
-- Semua file `.smi` dikonversi ke `.csv`
-- File gabungan: `data_zinc_smiles.csv`
+File yang diunduh akan diproses dan diekstrak ke folder `data_zinc_sdf`, `data_zinc_mol2`, dan `data_zinc_pdbqt` sesuai formatnya.
 
-## Struktur Direktori
+## Struktur Folder
+Setelah menjalankan program, struktur folder akan seperti ini:
+
 ```
 .
-├── data_zinc_sdf/     # File SDF
-├── data_zinc_mol2/    # File MOL2
-├── data_zinc_pdbqt/   # File PDBQT
-├── zinc_out/          # Folder sementara untuk SMI
-└── data_zinc_smiles.csv  # Output gabungan dari SMI
+├── data_zinc_sdf/   # File SDF hasil ekstraksi
+├── data_zinc_mol2/  # File MOL2 hasil ekstraksi
+├── data_zinc_pdbqt/ # File PDBQT hasil ekstraksi
+├── zinc_smiles.uri  # File daftar URL SMILES
+├── zinc_3d.uri      # File daftar URL 3D
+├── data_zinc_smiles.csv  # Hasil pengolahan data SMILES
 ```
 
+## Catatan
+- Pastikan URL yang digunakan valid dan dapat diakses.
+- Gunakan koneksi internet yang stabil untuk menghindari error saat mengunduh data.
+
 ## Lisensi
-Proyek ini dirilis di bawah lisensi MIT.
+Modul ini dirilis di bawah lisensi **MIT**.
 
