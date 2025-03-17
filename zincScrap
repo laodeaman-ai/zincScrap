@@ -1,0 +1,136 @@
+import os
+import requests
+import pandas as pd
+import shutil
+import gzip
+from concurrent.futures import ProcessPoolExecutor
+
+def zinc_download_smi(url, output_dir):
+    response = requests.get(url)
+    if response.status_code == 200:
+        file_name = os.path.basename(url)
+        output_path = os.path.join(output_dir, file_name)
+        with open(output_path, 'wb') as file:
+            file.write(response.content)
+        return output_path
+    else:
+        print(f"Failed to download {url}")
+        return None
+
+def process_zinc3d_url(url, base_dir, sdf_dir, mol2_dir, pdbqt_dir):
+    url = url.strip()
+    if not url:
+        return f"URL kosong, dilewati."
+
+    filename = os.path.basename(url)
+    compressed_file_path = os.path.join(base_dir, filename)
+    file_extension = os.path.splitext(filename)[0].split('.')[-1]
+    uncompressed_file_name = os.path.splitext(filename)[0]
+
+    if file_extension == 'sdf':
+        uncompressed_file_path = os.path.join(sdf_dir, uncompressed_file_name)
+    elif file_extension == 'mol2':
+        uncompressed_file_path = os.path.join(mol2_dir, uncompressed_file_name)
+    elif file_extension == 'pdbqt':
+        uncompressed_file_path = os.path.join(pdbqt_dir, uncompressed_file_name)
+    else:
+        return f"Ekstensi file tidak dikenal untuk {filename}. Melewati..."
+
+    try:
+        response = requests.get(url, stream=True)
+        response.raise_for_status()
+        with open(compressed_file_path, 'wb') as f:
+            shutil.copyfileobj(response.raw, f)
+
+        if filename.endswith('.gz'):
+            with gzip.open(compressed_file_path, 'rb') as gz_file:
+                with open(uncompressed_file_path, 'wb') as uncompressed_file:
+                    shutil.copyfileobj(gz_file, uncompressed_file)
+
+        os.remove(compressed_file_path)
+        return f"{filename} berhasil diunduh dan diekstrak ke {uncompressed_file_path}."
+
+    except Exception as e:
+        return f"Error saat memproses {url}: {e}"
+
+def process_zincsmi_url(url, output_dir):
+    try:
+        url = url.strip()
+        filename = os.path.basename(url)
+        smi_file_path = os.path.join(output_dir, filename)
+        csv_file_path = os.path.splitext(smi_file_path)[0] + '.csv'
+
+        response = requests.get(url, stream=True)
+        response.raise_for_status()
+        with open(smi_file_path, 'wb') as f:
+            shutil.copyfileobj(response.raw, f)
+
+        df = pd.read_csv(smi_file_path, sep='\\s+', header=None)
+        df.to_csv(csv_file_path, index=False, header=False)
+
+        os.remove(smi_file_path)
+        return f"{filename} Converted to {csv_file_path}."
+
+    except Exception as e:
+        return f"Error saat memproses {url}: {e}"
+
+def zinc_process_3d_files(uri_file):
+    if not os.path.exists(uri_file):
+        print(f"File {uri_file} tidak ditemukan.")
+        return
+
+    with open(uri_file, 'r') as f:
+        urls = f.readlines()
+
+    base_dir = '.'
+    sdf_dir = os.path.join(base_dir, 'data_zinc_sdf')
+    mol2_dir = os.path.join(base_dir, 'data_zinc_mol2')
+    pdbqt_dir = os.path.join(base_dir, 'data_zinc_pdbqt')
+
+    os.makedirs(sdf_dir, exist_ok=True)
+    os.makedirs(mol2_dir, exist_ok=True)
+    os.makedirs(pdbqt_dir, exist_ok=True)
+
+    max_workers = os.cpu_count() // 2
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        futures = [executor.submit(process_zinc3d_url, url, base_dir, sdf_dir, mol2_dir, pdbqt_dir) for url in urls]
+
+        for future in futures:
+            print(future.result())
+
+def zinc_process_smi_files(uri_file):
+    if not os.path.exists(uri_file):
+        print(f"File {uri_file} tidak ditemukan.")
+        return
+
+    with open(uri_file, 'r') as f:
+        urls = [url.strip() for url in f.readlines()]
+
+    output_dir = os.path.join('.', 'zinc_out')
+    final_csv_file = 'data_zinc_smiles.csv'
+
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    max_workers = os.cpu_count() // 2
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        futures = [executor.submit(process_zincsmi_url, url, output_dir) for url in urls]
+
+        for future in futures:
+            try:
+                result = future.result()
+                print(result)
+            except Exception as e:
+                print(f"Error processing URL: {e}")
+
+    csv_files = [os.path.join(output_dir, f) for f in os.listdir(output_dir) if f.endswith('.csv')]
+    if csv_files:
+        combined_df = pd.concat([pd.read_csv(csv_file, low_memory=False) for csv_file in csv_files], ignore_index=True)
+        combined_df.to_csv(final_csv_file, index=False)
+        print(f"All data saved in {final_csv_file}.")
+
+        for csv_file in csv_files:
+            os.remove(csv_file)
+        os.rmdir(output_dir)
+    else:
+        print("Tidak ada file CSV untuk digabungkan.")
