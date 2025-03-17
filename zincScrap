@@ -134,3 +134,11 @@ def zinc_process_smi_files(uri_file):
         os.rmdir(output_dir)
     else:
         print("Tidak ada file CSV untuk digabungkan.")
+
+if __name__ == "__main__":
+    # Contoh penggunaan
+    zinc_uri_smiles = 'zinc_smiles.uri'  # Ganti dengan path file URI yang sesuai
+    zinc_process_smi_files(zinc_uri_smiles)
+
+    zinc_uri_3d = 'zinc_3d.uri'  # Ganti dengan path file URI yang sesuai
+    zinc_process_3d_files(zinc_uri_3d)
